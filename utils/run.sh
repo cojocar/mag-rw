@@ -1,4 +1,5 @@
 #!/bin/bash
+
 if [ $# -lt 4 ]
 then
 	echo "Correct Syntax is: ./run.sh lower_limit upper_limit input_file out_putfile"
