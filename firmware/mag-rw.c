@@ -240,7 +240,7 @@ SIGNAL(SIG_ADC)
 
 
 void
-delay(uint8_t us)
+delay(uint32_t us)
 {
 	uint16_t count;
 	while (us) {
@@ -258,6 +258,7 @@ main(void)
 	usart_init();
 	init_timer_for_pwm();
 	DDRB |= _BV(PB_DIR_A) | _BV(PB_DIR_B);
+	PORTB |= _BV(PB_READ_BUTTON);
 	sei();
 	count = 0;
 	bit_count = 0;
@@ -271,11 +272,15 @@ main(void)
 	count_com = 0;
 	STATE = S_INIT;
 	for (;;) {
+		//usart_put_string("start\n");
 		if (STATE == S_INIT) {
-			loop_until_bit_is_clear(PINA, PB_READ_BUTTON);
-			START_MOTOR_DIR_A;
-			STATE = S_READING;
-			delay(100);
+			loop_until_bit_is_clear(PINB, PB_READ_BUTTON);
+			//usart_put_string("start_motor\n");
+			START_MOTOR_DIR_B;
+
+			//STATE = S_READING;
+
+			delay(100000);
 
 			STOP_MOTOR;
 		} else {
