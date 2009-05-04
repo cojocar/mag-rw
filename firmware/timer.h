@@ -22,5 +22,6 @@
 
 void init_timer_for_pwm(void);
 void init_timer_for_adc(void);
+void stop_timer_for_adc(void);
 
 #endif   /* ----- #ifndef TIMER_INC  ----- */

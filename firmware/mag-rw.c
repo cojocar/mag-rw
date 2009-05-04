@@ -22,7 +22,8 @@
 
 enum state {
 	S_INIT,
-	S_READING
+	S_READING,
+	S_READ
 } STATE;
 
 uint16_t count;
@@ -52,10 +53,14 @@ init_adc(void)
 	 */
 }
 
+void
+stop_adc(void) 
+{
+	ADCSRA &= ~_BV(ADEN);
+}
 
 
-
-#define BUF_SZ	32
+#define BUF_SZ	768
 uint8_t buf[BUF_SZ];
 uint8_t bit_count;
 uint16_t com_tt[20];
@@ -65,26 +70,49 @@ uint8_t last_lvl;
 uint32_t count_identic;
 uint64_t count_adc;
 uint8_t have_to_wait;
-uint8_t zero_count;
+uint32_t zero_count;
 uint32_t zero_samples;
 uint32_t zero_samples_init;
 uint8_t to_print;
 uint16_t zero_time[2];
 
+void
+output(void)
+{
+	STOP_MOTOR;
+	STATE = S_READ;
+	stop_timer_for_adc();
+	stop_adc();
+
+	int i;
+	for (i = 0; i < BUF_SZ; ++ i) {
+		usart_put_char(buf[i]);
+	}
+	usart_put_int16(zero_time[0]);
+	usart_put_char(' ');
+	usart_put_int16(zero_time[1]);
+	usart_put_char(' ');
+	usart_put_int32(count_adc);
+	usart_put_char('\n');
+	count = 0;
+}
+
+
 SIGNAL(SIG_OVERFLOW1) 
 {
 	/* adc timer overflow */
+	usart_put_string("XXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
 	if (zero_count >= ZEROS1) {
-		usart_put_string("caca\n");
+		output();
 	}
-	STOP_MOTOR;
+
+	//STATE = S_INIT;
 }
 #define TRESH 0
 SIGNAL(SIG_ADC)
 {
 	
 	uint8_t bit;
-	int i;
 
 	++ count_adc;
 	uint8_t lvl;
@@ -94,12 +122,19 @@ SIGNAL(SIG_ADC)
 	} else {
 		lvl = 0;
 	}
+	
+	if (bit_is_set(TIFR, TOV1)) {
+		STATE = S_READ;
+		STOP_MOTOR;
+		output();
+	}
 	if (lvl == last_lvl) {
 		if (count_identic < 0xffffffff) {
 			++ count_identic;
 		}
 	} else {
 		if (count_identic >= TRESH) {
+			count_identic = 0;
 			last_lvl = lvl;
 
 		/* a comutat */
@@ -109,8 +144,6 @@ SIGNAL(SIG_ADC)
 				 * salvez cate esantionari fac
 				 * ar trebui sa am minim doi biti de 1
 				 */
-				zero_samples = count_identic;
-				zero_samples_init = count_identic;
 				++ zero_count;
 			} else {
 				/* deja am trecut de zerouri, urmeaza sa folosesc timerul */
@@ -118,8 +151,11 @@ SIGNAL(SIG_ADC)
 					/* ratam un zero */
 					/* de aici trecem la timer */
 					//usart_put_string("dau drumul la timer\n");
-					init_timer_for_adc();
-					TCNT1 = 0;
+					STOP_MOTOR;
+					///*
+					//init_timer_for_adc();
+					//TCNT1 = 0;
+					//*/
 					++ zero_count;
 				} else {
 					if (zero_count < ZEROS1) {
@@ -165,7 +201,7 @@ SIGNAL(SIG_ADC)
 								}
 								break;
 							case 1:
-								if (com_time >= (zero_time[1] - (zero_time[0]>>2))) {
+								if (com_time >= (zero_time[1] - (zero_time[0]>>1))) {
 									/* nu X */
 									bit = 0;
 									zero_time[1] = (com_time + zero_time[1]) >> 1;
@@ -213,6 +249,8 @@ SIGNAL(SIG_ADC)
 								}
 								buf[count] |= bit;
 								if ((count == (BUF_SZ-1)) && (bit_count == 8)) {
+									output();
+									/*
 									for (i = 0; i < BUF_SZ; ++ i) {
 										usart_put_char(buf[i]);
 									}
@@ -225,6 +263,7 @@ SIGNAL(SIG_ADC)
 									usart_put_int32(count_adc);
 									usart_put_char('\n');
 									count = 0;
+									*/
 								}
 							}
 						}
@@ -233,7 +272,6 @@ SIGNAL(SIG_ADC)
 			}
 		} else {
 			++ count_identic;
-			last_lvl = !lvl;
 		}
 	}
 }
@@ -272,19 +310,21 @@ main(void)
 	count_com = 0;
 	STATE = S_INIT;
 	for (;;) {
-		//usart_put_string("start\n");
 		if (STATE == S_INIT) {
 			loop_until_bit_is_clear(PINB, PB_READ_BUTTON);
-			//usart_put_string("start_motor\n");
+			init_adc();
+
 			START_MOTOR_DIR_B;
 
-			//STATE = S_READING;
+			STATE = S_READING;
 
-			delay(100000);
-
-			STOP_MOTOR;
 		} else {
-			ADCSRA |= _BV(ADSC);
+			if (STATE == S_READING) {
+				ADCSRA |= _BV(ADSC);
+			} else {
+				stop_adc();
+				loop_until_bit_is_clear(PINB, PB_READ_BUTTON);
+			}
 		}
 	}
 }

@@ -24,10 +24,19 @@ init_timer_for_adc(void)
 	TCCR1A;
 	/* prescaler 1, intr-o ms nu ar trebui sa avem overflow */
 	/* dau enable intreruperi */
-	TIMSK = _BV(TOIE1);
-	TCCR1B = _BV(CS10) | _BV(CS11);
+	TIMSK |= _BV(TOIE1);
+	TCCR1B |= _BV(CS11);
+	//| _BV(CS10);
+	//| _BV(CS11);
 	//TCCR1B = _BV(CS12);
 
+}
+
+
+void
+stop_timer_for_adc(void)
+{
+	TCCR1B &= ~(_BV(CS12) | _BV(CS11) | _BV(CS10));
 }
 
 void
