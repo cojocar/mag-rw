@@ -75,6 +75,7 @@ uint32_t zero_samples;
 uint32_t zero_samples_init;
 uint8_t to_print;
 uint16_t zero_time[2];
+uint16_t unu_time[2];
 
 void
 output(void)
@@ -151,15 +152,16 @@ SIGNAL(SIG_ADC)
 					/* ratam un zero */
 					/* de aici trecem la timer */
 					//usart_put_string("dau drumul la timer\n");
-					STOP_MOTOR;
+					//STOP_MOTOR;
 					///*
-					//init_timer_for_adc();
-					//TCNT1 = 0;
+					init_timer_for_adc();
+					TCNT1 = 0;
 					//*/
 					++ zero_count;
 				} else {
 					if (zero_count < ZEROS1) {
-						zero_time[!lvl] = TCNT1;
+						zero_time[!lvl] = (zero_time[!lvl]>>1) + (TCNT1>>1);
+						unu_time[!lvl] = zero_time[!lvl]>>1;
 						TCNT1 = 0;
 						++ zero_count;
 					} else {
@@ -167,10 +169,11 @@ SIGNAL(SIG_ADC)
 						TCNT1 = 0;
 						switch (!lvl) {
 							case 0:
-								if (com_time >= (zero_time[0] - (zero_time[0]>>2))) {
+								if (com_time >= ((zero_time[0]>>1) + (zero_time[0]>>2))) {
 									/* nu e Y */
 									bit = 0;
-									zero_time[0] = (com_time + zero_time[0]) >> 1;
+									//zero_time[0] = (com_time>>1) + (zero_time[0]>>1);
+									zero_time[0] = com_time;
 								} else {
 									if (!to_print) {
 										/* avem un bit de 1, primul front */
@@ -180,9 +183,9 @@ SIGNAL(SIG_ADC)
 									} else {
 										to_print = 0;
 										bit = 1;
-										/*
-										zero_time[0] = com_time << 1;
-										*/
+										///*
+										//zero_time[0] = com_time << 1;
+										//*/
 										#if 0
 										if (com_time >= (zero_time[1] - (zero_time[0]>>1))) {
 											/* eroare */
@@ -201,10 +204,11 @@ SIGNAL(SIG_ADC)
 								}
 								break;
 							case 1:
-								if (com_time >= (zero_time[1] - (zero_time[0]>>1))) {
+								if (com_time >= ((zero_time[1]>>1) + (zero_time[1]>>2))) {
 									/* nu X */
 									bit = 0;
-									zero_time[1] = (com_time + zero_time[1]) >> 1;
+									//zero_time[1] = (com_time>>1) + (zero_time[1]>>1);
+									zero_time[1] = com_time;
 								} else {
 									if (to_print) {
 										/* X */
@@ -214,9 +218,9 @@ SIGNAL(SIG_ADC)
 										/* A */
 										to_print = 1;
 										bit = 1;
-										/*
-										zero_time[1] = com_time << 1;
-										*/
+										///*
+										//zero_time[1] = com_time << 1;
+										//*/
 										/*
 										if (com_time >= (zero_time[1] - (zero_time[1]>>2))) {
 											for (i = 0; i < count; ++ i) {
