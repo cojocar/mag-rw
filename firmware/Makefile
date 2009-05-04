@@ -1,6 +1,6 @@
 # AVR-GCC Makefile
-PROJECT=cad
-SOURCES=cad.c
+PROJECT=mag-rw
+SOURCES=mag-rw.c usart.c timer.c
 CC=avr-gcc
 OBJCOPY=avr-objcopy
 MMCU=atmega16
