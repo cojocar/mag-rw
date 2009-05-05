@@ -7,7 +7,7 @@ MMCU=atmega16
 
 AVRDUDE = /home/lucian/fac/pm/programator/src/avrdude-5.5/avrdude -C /etc/avrdude.conf -c usbtiny -p m16 #-F  #-B 250
 
-CFLAGS=-mmcu=$(MMCU) -Wall# -Wl,-u,vfprintf
+CFLAGS=-mmcu=$(MMCU) -O0 -Wall# -Wl,-u,vfprintf
 CPPFLAGS=-I./
 LDLIBS=#-lprintf_min
 

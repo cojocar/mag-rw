@@ -40,13 +40,13 @@ usart_init(void)
 	UCSRC = (1 << URSEL) | (3 << UCSZ0);
 }
 
-void
+inline void
 usart_put_char(uint8_t c) {
 	loop_until_bit_is_set(UCSRA, UDRE);
 	UDR = c;
 }
 
-void
+inline void
 usart_put_string(char *s)
 {
 	while (*s) {
@@ -55,7 +55,7 @@ usart_put_string(char *s)
 	}
 }
 
-void
+inline void
 usart_put_int16(uint16_t x)
 {
 	 uint8_t cif[10], i;
@@ -74,7 +74,7 @@ usart_put_int16(uint16_t x)
 	}
 }
 
-void
+inline void
 usart_put_int32(uint32_t x)
 {
 	 uint8_t cif[10], i;
