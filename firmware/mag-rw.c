@@ -135,6 +135,7 @@ put_bit(uint8_t bit)
 	}
 }
 
+uint16_t count_diferit;
 
 #define TRESH 0
 SIGNAL(SIG_ADC)
@@ -166,8 +167,10 @@ SIGNAL(SIG_ADC)
 			++ count_identic;
 		}
 	} else {
-		if (count_identic >= TRESH) {
+		++ count_diferit;
+		if (count_diferit >= TRESH && (TCNT1 > 100)) {
 			count_identic = 0;
+			count_diferit = 0;
 			last_lvl = lvl;
 
 		/* a comutat */
@@ -209,9 +212,20 @@ SIGNAL(SIG_ADC)
 						} else {
 							t = 3;
 						}*/
-						if (com_time <= ((zero_time[!lvl]>>1) + ((zero_time[!lvl]>>6)))) {
+						if (com_time <= ((zero_time[!lvl]>>1) + ((zero_time[!lvl]>>7)))) {
 							t = 2;
 						} else if (com_time >= ((zero_time[!lvl]) - (zero_time[!lvl]>>7))) {
+							#if 0
+							if (com_time >= ((zero_time[!lvl]) + (zero_time[!lvl]>>2))) {
+								/* we missed 1 */
+								put_bit(1);
+								r = 1;
+								t = 3;
+							} else {
+								t = 4;
+								zero_time[!lvl] = com_time;
+							}
+							#endif
 							t = 4;
 							//zero_time[!lvl] = com_time;
 						} else {
@@ -226,9 +240,9 @@ SIGNAL(SIG_ADC)
 						}
 						/* not skip */
 						if ((t - r) == 2) {
-							/*
+							///*
 							zero_time[!lvl] = (com_time>>1) + (zero_time[!lvl]>>1);
-							*/
+							//*/
 							bit = 0;
 							skip = 0;
 							r = 2;
