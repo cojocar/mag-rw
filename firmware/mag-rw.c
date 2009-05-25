@@ -28,7 +28,7 @@ enum state {
 
 uint16_t count;
 uint8_t t, r, skip;
-#define BUF_SZ	128
+#define BUF_SZ	16
 uint8_t buf[BUF_SZ];
 uint8_t bit_count;
 uint8_t count_com;
@@ -109,6 +109,7 @@ SIGNAL(SIG_OVERFLOW1)
 {
 	/* adc timer overflow */
 	usart_put_string("OVERFLOW\n");
+	STOP_MOTOR;
 	if (zero_count >= ZEROS1) {
 		output();
 	}
@@ -120,6 +121,7 @@ SIGNAL(SIG_OVERFLOW1)
 inline void
 put_bit(uint8_t bit)
 {
+	//STOP_MOTOR;
 	if (bit_count < 8) {
 		buf[count] <<= 1;
 		++ bit_count;
@@ -137,7 +139,7 @@ put_bit(uint8_t bit)
 
 uint16_t count_diferit;
 
-#define TRESH 0
+#define TRESH 3
 SIGNAL(SIG_ADC)
 {
 	
@@ -146,7 +148,7 @@ SIGNAL(SIG_ADC)
 	++ count_adc;
 	uint8_t lvl;
 	uint16_t com_time;
-	if (ADC > 512) {
+	if (ADC > 170) {
 		lvl = 1;
 	} else {
 		lvl = 0;
@@ -168,12 +170,13 @@ SIGNAL(SIG_ADC)
 		}
 	} else {
 		++ count_diferit;
-		if (count_diferit >= TRESH && (TCNT1 > 100)) {
+		if (count_diferit >= TRESH){ //&& (TCNT1 > 100)) {
 			count_identic = 0;
 			count_diferit = 0;
 			last_lvl = lvl;
 
 		/* a comutat */
+			// STOP_MOTOR;
 			if (zero_count < ZEROS) {
 				/*
 				 * sunt intr-un sir de zerouri,
@@ -200,6 +203,7 @@ SIGNAL(SIG_ADC)
 						zero_time[!lvl] = TCNT1; //(zero_time[!lvl]>>1) + (TCNT1>>1);
 						TCNT1 = 0;
 					} else {
+						//STOP_MOTOR;
 						com_time = TCNT1;
 						TCNT1 = 0;
 						/*
@@ -212,9 +216,9 @@ SIGNAL(SIG_ADC)
 						} else {
 							t = 3;
 						}*/
-						if (com_time <= ((zero_time[!lvl]>>1) + ((zero_time[!lvl]>>7)))) {
+						if (com_time <= ((zero_time[!lvl]>>1) + ((zero_time[!lvl]>>5)))){//7)))) {
 							t = 2;
-						} else if (com_time >= ((zero_time[!lvl]) - (zero_time[!lvl]>>7))) {
+						} else if (com_time >= ((zero_time[!lvl]) - (zero_time[!lvl]>>5))){//7))) {
 							#if 0
 							if (com_time >= ((zero_time[!lvl]) + (zero_time[!lvl]>>2))) {
 								/* we missed 1 */
@@ -312,9 +316,10 @@ main(void)
 		if (STATE == S_INIT) {
 			loop_until_bit_is_clear(PINB, PB_READ_BUTTON);
 			init_adc();
-
+			
+			//init_timer_for_adc();
+			
 			START_MOTOR_DIR_B;
-
 			STATE = S_READING;
 
 		} else {
