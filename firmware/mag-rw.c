@@ -138,6 +138,7 @@ put_bit(uint8_t bit)
 }
 
 uint16_t count_diferit;
+uint16_t min, max;
 
 #define TRESH 3
 SIGNAL(SIG_ADC)
@@ -148,9 +149,24 @@ SIGNAL(SIG_ADC)
 	++ count_adc;
 	uint8_t lvl;
 	uint16_t com_time;
-	if (ADC > 170) {
+	volatile uint16_t v;
+	/*
+	usart_put_char('x');
+	usart_put_int16(ADC);
+	usart_put_char(' ');
+	*/
+	v = ADC;
+	if (v > max) {
+		max = v;
+	}
+	if (v < min) {
+		min = v;
+	}
+	if (ADC > ((max-min)>>2)+min) {
+		max = v;
 		lvl = 1;
 	} else {
+		min = v;
 		lvl = 0;
 	}
 	
@@ -312,6 +328,8 @@ main(void)
 	skip = 0;
 	STATE = S_INIT;
 	buf[0] = 0;
+	min = 0xffff;
+	max = 0x0000;
 	for (;;) {
 		if (STATE == S_INIT) {
 			loop_until_bit_is_clear(PINB, PB_READ_BUTTON);
