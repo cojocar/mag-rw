@@ -32,6 +32,7 @@ uint8_t t, r, skip;
 uint8_t buf[BUF_SZ];
 uint8_t bit_count;
 uint8_t count_com;
+uint16_t min, max;
 
 uint8_t last_lvl;
 uint32_t count_identic;
@@ -98,7 +99,10 @@ output(void)
 	usart_put_int32(count);
 	usart_put_char(' ');
 	usart_put_char('0' + bit_count);
-
+	usart_put_char('m');
+	usart_put_int16(min);
+	usart_put_char('M');
+	usart_put_int16(max);
 	usart_put_char('\n');
 	count = 0;
 	bit_count = 0;
@@ -138,7 +142,6 @@ put_bit(uint8_t bit)
 }
 
 uint16_t count_diferit;
-uint16_t min, max;
 
 #define TRESH 3
 SIGNAL(SIG_ADC)
@@ -162,14 +165,27 @@ SIGNAL(SIG_ADC)
 	if (v < min) {
 		min = v;
 	}
-	if (ADC > ((max-min)>>2)+min) {
-		max = v;
+	if (v > (max >> 1)){//((max-min)>>1)+min) {
+		//max = v;
 		lvl = 1;
 	} else {
-		min = v;
+		//min = v;
 		lvl = 0;
 	}
 	
+	/*
+	usart_put_char('x');
+	usart_put_int16(min);
+	usart_put_char('-');
+	usart_put_int16(max);
+	*/
+	/*	
+	if (v > 400) {
+		lvl = 1;
+	}
+	else
+		lvl = 0;
+	*/	
 	/*
 	if (bit_is_set(TIFR, TOV1)) {
 		STATE = S_READ;
@@ -232,9 +248,9 @@ SIGNAL(SIG_ADC)
 						} else {
 							t = 3;
 						}*/
-						if (com_time <= ((zero_time[!lvl]>>1) + ((zero_time[!lvl]>>5)))){//7)))) {
+						if (com_time <= ((zero_time[!lvl]>>1) + ((zero_time[!lvl]>>9)))) {
 							t = 2;
-						} else if (com_time >= ((zero_time[!lvl]) - (zero_time[!lvl]>>5))){//7))) {
+						} else if (com_time >= ((zero_time[!lvl]) - (zero_time[!lvl]>>4))){//7))) {
 							#if 0
 							if (com_time >= ((zero_time[!lvl]) + (zero_time[!lvl]>>2))) {
 								/* we missed 1 */
@@ -267,7 +283,7 @@ SIGNAL(SIG_ADC)
 							skip = 0;
 							r = 2;
 						} else if ((t - r) == 1) {
-							//zero_time[!lvl] = com_time << 1;
+							zero_time[!lvl] = com_time << 1;
 							bit = 1;
 							skip = 1;
 							r = 9;
@@ -315,6 +331,7 @@ main(void)
 	init_timer_for_pwm();
 	DDRB |= _BV(PB_DIR_A) | _BV(PB_DIR_B);
 	PORTB |= _BV(PB_READ_BUTTON);
+	STOP_MOTOR;
 	sei();
 	count = 0;
 	bit_count = 0;
@@ -333,6 +350,7 @@ main(void)
 	for (;;) {
 		if (STATE == S_INIT) {
 			loop_until_bit_is_clear(PINB, PB_READ_BUTTON);
+			//loop_until_bit_is_set(PINB, PB_READ_BUTTON);
 			init_adc();
 			
 			//init_timer_for_adc();
