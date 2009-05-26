@@ -23,6 +23,9 @@
 #	error "define baud rate!"
 #endif
 
+static uint16_t buf_pos;
+static uint8_t	usart_buffer[USART_BUF_SIZE];
+
 void
 usart_init(void)
 {
@@ -38,6 +41,7 @@ usart_init(void)
 	 * asynchronous 8N1
 	 */
 	UCSRC = (1 << URSEL) | (3 << UCSZ0);
+	buf_pos = 0;
 }
 
 inline void
@@ -90,6 +94,54 @@ usart_put_int32(uint32_t x)
 	}
 	while (i--) {
 		usart_put_char(cif[i] + '0');
+	}
+}
+
+inline void
+usart_buf_put_char(uint8_t x)
+{
+	usart_buffer[buf_pos ++] = x;
+	if (buf_pos == USART_BUF_SIZE) {
+		buf_pos = 0;
+	}
+}
+
+void
+usart_buf_print(void)
+{
+	uint16_t i;
+	for (i = 0; i < buf_pos; ++ i) {
+		usart_put_char(usart_buffer[i]);
+	}
+	buf_pos = 0;
+}
+
+inline void
+usart_buf_put_string(char *s)
+{
+	while (*s) {
+		usart_buf_put_char(*s);
+		++ s;
+	}
+}
+
+
+void
+usart_buf_put_int16(uint16_t x)
+{
+	 uint8_t cif[10], i;
+	/* 
+	 * itoa function
+	 */
+	usart_buf_put_char('0');
+	i = 0;
+	while (x) {
+		cif[i] = x % 10;
+		++ i;
+		x /= 10;
+	}
+	while (i--) {
+		usart_buf_put_char(cif[i] + '0');
 	}
 }
 

@@ -23,4 +23,11 @@ void usart_put_int16(uint16_t);
 void usart_put_string(char *);
 void usart_put_int32(uint32_t);
 
+void usart_buf_put_int16(uint16_t);
+void usart_buf_put_string(char *);
+void usart_buf_print(void);
+void usart_buf_put_char(uint8_t);
+
+#define USART_BUF_SIZE	128
+
 #endif   /* ----- #ifndef USART_INC  ----- */
