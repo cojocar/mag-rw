@@ -248,7 +248,7 @@ SIGNAL(SIG_ADC)
 						} else {
 							t = 3;
 						}*/
-						if (com_time <= ((zero_time[!lvl]>>1) + ((zero_time[!lvl]>>9)))) {
+						if (com_time <= ((zero_time[!lvl]>>1) + ((zero_time[!lvl]>>4)))) {
 							t = 2;
 						} else if (com_time >= ((zero_time[!lvl]) - (zero_time[!lvl]>>4))){//7))) {
 							#if 0
