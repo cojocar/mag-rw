@@ -21,7 +21,7 @@
 #define F_OSC 16000000           /* oscillator-frequency in Hz */
 #define UART_BAUD_RATE 9600
 #define ZEROS	10
-#define ZEROS1	(ZEROS+3)
+#define ZEROS1	(ZEROS+15)
 
 #define PB_READ_BUTTON	PB0
 #define PB_DIR_A		PB1

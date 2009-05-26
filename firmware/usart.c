@@ -102,6 +102,7 @@ usart_buf_put_char(uint8_t x)
 {
 	usart_buffer[buf_pos ++] = x;
 	if (buf_pos == USART_BUF_SIZE) {
+		usart_buf_print();
 		buf_pos = 0;
 	}
 }
@@ -114,6 +115,7 @@ usart_buf_print(void)
 		usart_put_char(usart_buffer[i]);
 	}
 	buf_pos = 0;
+	usart_put_char('\n');
 }
 
 inline void

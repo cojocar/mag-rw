@@ -88,10 +88,14 @@ output(void)
 	for (i = 0; i < BUF_SZ; ++ i) {
 		usart_put_char(buf[i]);
 	}*/
+	/*
 	usart_put_string("START");
 	for (i = 0; i <= count; ++ i) {
 		usart_put_char((uint8_t)buf[i]);
 	}
+	*/
+	usart_buf_print();
+	/*
 	usart_put_int16(zero_time[0]);
 	usart_put_char(' ');
 	usart_put_int16(zero_time[1]);
@@ -104,6 +108,7 @@ output(void)
 	usart_put_char('M');
 	usart_put_int16(max);
 	usart_put_char('\n');
+	*/
 	count = 0;
 	bit_count = 0;
 }
@@ -143,7 +148,7 @@ put_bit(uint8_t bit)
 
 uint16_t count_diferit;
 
-#define TRESH 3
+#define TRESH 0
 SIGNAL(SIG_ADC)
 {
 	
@@ -165,7 +170,7 @@ SIGNAL(SIG_ADC)
 	if (v < min) {
 		min = v;
 	}
-	if (v > (max >> 1)){//((max-min)>>1)+min) {
+	if (v > ((max-min)>>1)+min) {
 		//max = v;
 		lvl = 1;
 	} else {
@@ -202,6 +207,7 @@ SIGNAL(SIG_ADC)
 		}
 	} else {
 		++ count_diferit;
+		count_diferit = 30;
 		if (count_diferit >= TRESH){ //&& (TCNT1 > 100)) {
 			count_identic = 0;
 			count_diferit = 0;
@@ -229,14 +235,19 @@ SIGNAL(SIG_ADC)
 					//*/
 					++ zero_count;
 				} else {
+					com_time = TCNT1;
 					if (zero_count < ZEROS1) {
 						r = 2;
 						++ zero_count;
-						zero_time[!lvl] = TCNT1; //(zero_time[!lvl]>>1) + (TCNT1>>1);
+						zero_time[!lvl] = com_time; //(zero_time[!lvl]>>1) + (TCNT1>>1);
+						usart_buf_put_char('!');
+						usart_buf_put_int16(com_time);
 						TCNT1 = 0;
 					} else {
 						//STOP_MOTOR;
-						com_time = TCNT1;
+						usart_buf_put_char('@');
+						usart_buf_put_int16(com_time);
+						usart_buf_put_char('#');
 						TCNT1 = 0;
 						/*
 						if (com_time <= (zero_time[!lvl]>>2)) {
@@ -248,7 +259,7 @@ SIGNAL(SIG_ADC)
 						} else {
 							t = 3;
 						}*/
-						if (com_time <= ((zero_time[!lvl]>>1) + ((zero_time[!lvl]>>4)))) {
+						if (com_time <= ((zero_time[!lvl]>>1) + ((zero_time[!lvl]>>9)))) {
 							t = 2;
 						} else if (com_time >= ((zero_time[!lvl]) - (zero_time[!lvl]>>4))){//7))) {
 							#if 0
@@ -288,6 +299,7 @@ SIGNAL(SIG_ADC)
 							skip = 1;
 							r = 9;
 						} else {
+							#if 0
 							///*
 							usart_put_char('0' + t);
 							usart_put_char('0' + r);
@@ -295,13 +307,15 @@ SIGNAL(SIG_ADC)
 							usart_put_string("t-r too large\n");
 							usart_put_char('0'+!lvl);
 							usart_put_int16(com_time);
+							usart_put_char('\n');
+							#endif
 							output();
 							STATE = S_READ;
 							return;
 						}
 						put_bit(bit);
-						TCNT1 = 0;
 					}
+					TCNT1 = 0;
 				}
 			}
 		} else {
@@ -356,6 +370,7 @@ main(void)
 			//init_timer_for_adc();
 			
 			START_MOTOR_DIR_B;
+			//START_MOTOR_DIR_A;
 			STATE = S_READING;
 
 		} else {

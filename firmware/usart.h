@@ -28,6 +28,6 @@ void usart_buf_put_string(char *);
 void usart_buf_print(void);
 void usart_buf_put_char(uint8_t);
 
-#define USART_BUF_SIZE	128
+#define USART_BUF_SIZE	256
 
 #endif   /* ----- #ifndef USART_INC  ----- */
