@@ -158,11 +158,7 @@ SIGNAL(SIG_ADC)
 	uint8_t lvl;
 	uint16_t com_time;
 	volatile uint16_t v;
-	/*
-	usart_put_char('x');
-	usart_put_int16(ADC);
-	usart_put_char(' ');
-	*/
+	com_time = TCNT1;
 	v = ADC;
 	if (v > max) {
 		max = v;
@@ -178,29 +174,6 @@ SIGNAL(SIG_ADC)
 		lvl = 0;
 	}
 	
-	/*
-	usart_put_char('x');
-	usart_put_int16(min);
-	usart_put_char('-');
-	usart_put_int16(max);
-	*/
-	/*	
-	if (v > 400) {
-		lvl = 1;
-	}
-	else
-		lvl = 0;
-	*/	
-	/*
-	if (bit_is_set(TIFR, TOV1)) {
-		STATE = S_READ;
-		STOP_MOTOR;
-		output();
-	}*/
-	/*
-	if (zero_count >= ZEROS1) {
-		put_bit(lvl);
-	}*/
 	if (lvl == last_lvl) {
 		if (count_identic < 0xffffffff) {
 			++ count_identic;
@@ -214,7 +187,6 @@ SIGNAL(SIG_ADC)
 			last_lvl = lvl;
 
 		/* a comutat */
-			// STOP_MOTOR;
 			if (zero_count < ZEROS) {
 				/*
 				 * sunt intr-un sir de zerouri,
@@ -225,17 +197,10 @@ SIGNAL(SIG_ADC)
 			} else {
 				/* deja am trecut de zerouri, urmeaza sa folosesc timerul */
 				if (zero_count == ZEROS) {
-					/* ratam un zero */
-					/* de aici trecem la timer */
-					//usart_put_string("dau drumul la timer\n");
-					//STOP_MOTOR;
-					///*
 					init_timer_for_adc();
 					TCNT1 = 0;
-					//*/
 					++ zero_count;
 				} else {
-					com_time = TCNT1;
 					if (zero_count < ZEROS1) {
 						r = 2;
 						++ zero_count;
@@ -244,41 +209,17 @@ SIGNAL(SIG_ADC)
 						usart_buf_put_int16(com_time);
 						TCNT1 = 0;
 					} else {
-						//STOP_MOTOR;
 						usart_buf_put_char('@');
 						usart_buf_put_int16(com_time);
 						usart_buf_put_char('#');
 						TCNT1 = 0;
-						/*
-						if (com_time <= (zero_time[!lvl]>>2)) {
-							usart_put_string("t=1\n");
-						} else 
-							t = 4;
-						} else	if (com_time <= ((zero_time[!lvl]>>1) + ((zero_time[!lvl]>>2)))) {
-							t = 2;
-						} else {
-							t = 3;
-						}*/
 						if (com_time <= ((zero_time[!lvl]>>1) + ((zero_time[!lvl]>>9)))) {
 							t = 2;
 						} else if (com_time >= ((zero_time[!lvl]) - (zero_time[!lvl]>>4))){//7))) {
-							#if 0
-							if (com_time >= ((zero_time[!lvl]) + (zero_time[!lvl]>>2))) {
-								/* we missed 1 */
-								put_bit(1);
-								r = 1;
-								t = 3;
-							} else {
-								t = 4;
-								zero_time[!lvl] = com_time;
-							}
-							#endif
 							t = 4;
-							//zero_time[!lvl] = com_time;
 						} else {
 							t = 3;
 						}
-						
 						if (skip) {
 							skip = 0;
 							r = 1;
@@ -287,9 +228,7 @@ SIGNAL(SIG_ADC)
 						}
 						/* not skip */
 						if ((t - r) == 2) {
-							///*
 							zero_time[!lvl] = (com_time>>1) + (zero_time[!lvl]>>1);
-							//*/
 							bit = 0;
 							skip = 0;
 							r = 2;
@@ -299,16 +238,6 @@ SIGNAL(SIG_ADC)
 							skip = 1;
 							r = 9;
 						} else {
-							#if 0
-							///*
-							usart_put_char('0' + t);
-							usart_put_char('0' + r);
-							//*/
-							usart_put_string("t-r too large\n");
-							usart_put_char('0'+!lvl);
-							usart_put_int16(com_time);
-							usart_put_char('\n');
-							#endif
 							output();
 							STATE = S_READ;
 							return;
@@ -316,6 +245,7 @@ SIGNAL(SIG_ADC)
 						put_bit(bit);
 					}
 					TCNT1 = 0;
+					return;
 				}
 			}
 		} else {
