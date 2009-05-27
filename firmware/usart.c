@@ -102,6 +102,7 @@ usart_buf_put_char(uint8_t x)
 {
 	usart_buffer[buf_pos ++] = x;
 	if (buf_pos == USART_BUF_SIZE) {
+		usart_put_string("UBUF_FULL");
 		usart_buf_print();
 		buf_pos = 0;
 	}
@@ -114,8 +115,8 @@ usart_buf_print(void)
 	for (i = 0; i < buf_pos; ++ i) {
 		usart_put_char(usart_buffer[i]);
 	}
-	buf_pos = 0;
 	usart_put_char('\n');
+	buf_pos = 0;
 }
 
 inline void
@@ -147,3 +148,8 @@ usart_buf_put_int16(uint16_t x)
 	}
 }
 
+inline uint16_t
+usart_buf_get_pos(void)
+{
+	return buf_pos;
+}

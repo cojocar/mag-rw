@@ -5,8 +5,8 @@ CC=avr-gcc
 OBJCOPY=avr-objcopy
 MMCU=atmega16
 
-AVRDUDE = avrdude -C /etc/avrdude.conf -c usbtiny -p m16 #-F  #-B 250
-
+#AVRDUDE = avrdude -C /etc/avrdude.conf -c usbtiny -p m16 #-F  #-B 250
+AVRDUDE = /home/lucian/fac/pm/programator/src/avrdude-5.5/avrdude -C /etc/avrdude.conf -c usbtiny -p m16 #-F  #-B 250
 CFLAGS=-mmcu=$(MMCU) -O0 -Wall# -Wl,-u,vfprintf
 CPPFLAGS=-I./
 LDLIBS=#-lprintf_min

@@ -50,17 +50,23 @@ init_adc(void)
 	 * adc1
 	 * use avcc
 	 */
-	ADMUX = _BV(REFS0) | _BV(MUX0);
+	//ADMUX = _BV(REFS0) | _BV(MUX0);
+	/*
+	 * intrare diferentiala
+	 * pe ADC1 -
+	 * si ADC2 +
+	 */
+	ADMUX = _BV(REFS0) | _BV(MUX4) | _BV(MUX1);
 	/*
 	ADMUX = _BV (REFS0) | _BV (MUX0) | _BV (MUX1) | _BV (MUX2) | _BV (ADLAR);
 	*/
 
 	/*
 	 * enable adc
-	 * prescaler 128
+	 * prescaler 32	=> ~33KHz
 	 * intreruperi
 	 */
-	ADCSRA =  /*_BV(ADPS2) | _BV(ADPS1) | _BV(ADPS0) |*/ _BV(ADIE) | _BV(ADSC) | _BV(ADEN);	
+	ADCSRA =  _BV(ADPS2) |/* _BV(ADPS0) |*/ _BV(ADIE) | _BV(ADSC) | _BV(ADEN);	
 	//ADCSRA |= _BV(ADPS1);
 	/*
 	 * free running mode
@@ -88,13 +94,14 @@ output(void)
 	for (i = 0; i < BUF_SZ; ++ i) {
 		usart_put_char(buf[i]);
 	}*/
-	/*
+	///*
 	usart_put_string("START");
 	for (i = 0; i <= count; ++ i) {
 		usart_put_char((uint8_t)buf[i]);
 	}
-	*/
+	//*/
 	usart_buf_print();
+	///*
 	/*
 	usart_put_int16(zero_time[0]);
 	usart_put_char(' ');
@@ -117,8 +124,8 @@ output(void)
 SIGNAL(SIG_OVERFLOW1) 
 {
 	/* adc timer overflow */
-	usart_put_string("OVERFLOW\n");
 	STOP_MOTOR;
+	usart_put_string("OVERFLOW\n");
 	if (zero_count >= ZEROS1) {
 		output();
 	}
@@ -130,7 +137,6 @@ SIGNAL(SIG_OVERFLOW1)
 inline void
 put_bit(uint8_t bit)
 {
-	//STOP_MOTOR;
 	if (bit_count < 8) {
 		buf[count] <<= 1;
 		++ bit_count;
@@ -160,10 +166,11 @@ SIGNAL(SIG_ADC)
 	volatile uint16_t v;
 	com_time = TCNT1;
 	v = ADC;
-	if (v > max) {
+	#if 0
+	if (v > max/* && zero_count < ZEROS*/) {
 		max = v;
 	}
-	if (v < min) {
+	if (v < min /* && zero_count < ZEROS*/) {
 		min = v;
 	}
 	if (v > ((max-min)>>1)+min) {
@@ -173,6 +180,37 @@ SIGNAL(SIG_ADC)
 		//min = v;
 		lvl = 0;
 	}
+	#endif
+	#define L	0xff
+	if (v < 0x200) {
+		if (v > L) {
+			lvl = 1;
+		} else if (zero_count < ZEROS) {
+			lvl = last_lvl;
+		} else {
+			return;
+		}
+	} else {
+		if (v < (0x3ff - L)) {
+			lvl = 0;
+		} else if (zero_count < ZEROS) {
+			lvl = last_lvl;
+		} else {
+			return;
+		}
+	}
+	#if 0
+	usart_buf_put_int16(v);
+	usart_buf_put_char('v');
+	if (usart_buf_get_pos() >= USART_BUF_SIZE - 20) {
+		stop_adc();
+		stop_timer_for_adc();
+		STOP_MOTOR;
+		usart_buf_print();
+	}
+	#endif
+
+
 	
 	if (lvl == last_lvl) {
 		if (count_identic < 0xffffffff) {
@@ -181,8 +219,8 @@ SIGNAL(SIG_ADC)
 	} else {
 		++ count_diferit;
 		count_diferit = 30;
+		//if (com_time > 30 || zero_count <= ZEROS) {
 		if (count_diferit >= TRESH){ //&& (TCNT1 > 100)) {
-			count_identic = 0;
 			count_diferit = 0;
 			last_lvl = lvl;
 
@@ -205,17 +243,28 @@ SIGNAL(SIG_ADC)
 						r = 2;
 						++ zero_count;
 						zero_time[!lvl] = com_time; //(zero_time[!lvl]>>1) + (TCNT1>>1);
-						usart_buf_put_char('!');
+						///*
 						usart_buf_put_int16(com_time);
+						usart_buf_put_char('!');
+						//*/
 						TCNT1 = 0;
 					} else {
-						usart_buf_put_char('@');
+						///*
+						//usart_buf_put_int16(count_identic);
 						usart_buf_put_int16(com_time);
 						usart_buf_put_char('#');
+						if (usart_buf_get_pos() >= USART_BUF_SIZE - 20) {
+							stop_adc();
+							stop_adc();
+							stop_timer_for_adc();
+							usart_buf_print();
+							STOP_MOTOR;
+						}
+						//*/
 						TCNT1 = 0;
 						if (com_time <= ((zero_time[!lvl]>>1) + ((zero_time[!lvl]>>9)))) {
 							t = 2;
-						} else if (com_time >= ((zero_time[!lvl]) - (zero_time[!lvl]>>4))){//7))) {
+						} else if (com_time >= ((zero_time[!lvl]) - (zero_time[!lvl]>>4))){
 							t = 4;
 						} else {
 							t = 3;
@@ -227,6 +276,7 @@ SIGNAL(SIG_ADC)
 							return;
 						}
 						/* not skip */
+						#if 0
 						if ((t - r) == 2) {
 							zero_time[!lvl] = (com_time>>1) + (zero_time[!lvl]>>1);
 							bit = 0;
@@ -238,16 +288,31 @@ SIGNAL(SIG_ADC)
 							skip = 1;
 							r = 9;
 						} else {
+							/*
+							usart_put_char('0' + t);
+							usart_put_char('0' + r);
+							usart_put_string("t-r to large\n");
+							usart_put_char('0'+!lvl);
+							usart_put_int16(com_time);
 							output();
+							*/
+							stop_adc();
+							stop_timer_for_adc();
+							usart_buf_print();
+							STOP_MOTOR;
 							STATE = S_READ;
+							TCNT1 = 0;
 							return;
 						}
+						#endif
 						put_bit(bit);
 					}
 					TCNT1 = 0;
 					return;
 				}
 			}
+
+			count_identic = 0;
 		} else {
 			++ count_identic;
 		}
@@ -291,6 +356,7 @@ main(void)
 	buf[0] = 0;
 	min = 0xffff;
 	max = 0x0000;
+	//START_MOTOR_DIR_B;
 	for (;;) {
 		if (STATE == S_INIT) {
 			loop_until_bit_is_clear(PINB, PB_READ_BUTTON);
