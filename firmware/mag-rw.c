@@ -46,7 +46,7 @@ uint16_t unu_time[2];
 void
 start_comp(void)
 {
-//	ACSR |= _BV(ACIE);
+	ACSR |= _BV(ACIE);
 }
 
 void
@@ -66,15 +66,14 @@ init_comp(void)
 	 */
 	SFIOR = _BV(ACME);
 	ADMUX = _BV(MUX1);
-	/* outputul merge la timer1 */
-	ACSR = _BV(ACIC);
+	ACSR = 0;//_BV(ACIC);
 }
 
 ISR(SIG_INPUT_CAPTURE1)
 {
 	volatile uint16_t c;
-	ICR1 = 0x1FF;
 	c = ICR1;
+	ICR1 = 0;
 	TIFR |= _BV(ICF1);
 	usart_buf_put_int16(c);
 	usart_buf_put_char('#');
@@ -201,9 +200,10 @@ uint16_t count_diferit;
 uint16_t rem;
 
 #define TRESH 0
-SIGNAL(SIG_COMPARATOR)
+ISR(SIG_COMPARATOR)
 {
-	uint16_t com_time;
+	volatile uint16_t com_time;
+	//TCNT1 = 0x0;
 	com_time = TCNT1;
 	TCNT1 = 0;
 	usart_buf_put_int16(com_time);
@@ -478,8 +478,8 @@ main(void)
 		if (STATE == S_INIT) {
 			loop_until_bit_is_clear(PINB, PB_READ_BUTTON);
 			//loop_until_bit_is_set(PINB, PB_READ_BUTTON);
-			//init_adc();
-			stop_adc();
+			init_adc();
+			//stop_adc();
 			init_comp();
 			start_comp();
 			
