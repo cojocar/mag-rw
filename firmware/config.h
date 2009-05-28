@@ -17,9 +17,9 @@
 #ifndef  CONFIG_INC
 #define  CONFIG_INC
 
-//#define PWM_SPEED	0x2d	/* cu asta meargea */
+#define PWM_SPEED	0x2d	/* cu asta meargea */
 //#define PWM_SPEED	0x24
-#define PWM_SPEED	0x20
+//#define PWM_SPEED	0x20
 //#define PWM_SPEED	0x1C
 //#define PWM_SPEED	0x14
 #define F_OSC 16000000           /* oscillator-frequency in Hz */
@@ -29,7 +29,7 @@
 
 #define PB_READ_BUTTON	PB0
 #define PB_DIR_A		PB1
-#define PB_DIR_B		PB2
+#define PB_DIR_B		PB4
 
 #define START_MOTOR_DIR(a)	PORTB |= _BV((a))
 #define START_MOTOR_DIR_A	START_MOTOR_DIR(PB_DIR_A)

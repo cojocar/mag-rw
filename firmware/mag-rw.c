@@ -1,3 +1,4 @@
+
 /*
  * ==========================================================================
  *
@@ -43,34 +44,78 @@ uint16_t zero_time[2];
 uint16_t unu_time[2];
 
 void
+start_comp(void)
+{
+//	ACSR |= _BV(ACIE);
+}
+
+void
+stop_comp(void)
+{
+	ACSR &= ~_BV(ACIE);
+}
+
+void stop_adc(void);
+
+void
+init_comp(void)
+{
+	stop_adc();
+	/*
+	 * in loc de AIN1 folosim ADC1
+	 */
+	SFIOR = _BV(ACME);
+	ADMUX = _BV(MUX1);
+	/* outputul merge la timer1 */
+	ACSR = _BV(ACIC);
+}
+
+ISR(SIG_INPUT_CAPTURE1)
+{
+	volatile uint16_t c;
+	ICR1 = 0x1FF;
+	c = ICR1;
+	TIFR |= _BV(ICF1);
+	usart_buf_put_int16(c);
+	usart_buf_put_char('#');
+	if (usart_buf_get_pos() >= USART_BUF_SIZE - 20) {
+		STOP_MOTOR;
+		stop_adc();
+		stop_comp();
+		stop_timer_for_adc();
+		usart_buf_print();
+	}
+}
+
+void
 init_adc(void)
 {
-	/*
-	 * right adjusted
-	 * adc1
-	 * use avcc
-	 */
-	//ADMUX = _BV(REFS0) | _BV(MUX0);
-	/*
-	 * intrare diferentiala
-	 * pe ADC1 -
-	 * si ADC2 +
-	 */
-	ADMUX = _BV(REFS0) | _BV(MUX4) | _BV(MUX1);
-	/*
-	ADMUX = _BV (REFS0) | _BV (MUX0) | _BV (MUX1) | _BV (MUX2) | _BV (ADLAR);
-	*/
-
-	/*
-	 * enable adc
-	 * prescaler 32	=> ~33KHz
-	 * intreruperi
-	 */
-	ADCSRA =   _BV(ADPS1) | /* _BV(ADPS0) |*/ _BV(ADIE) | _BV(ADSC) | _BV(ADEN);	
-	//ADCSRA |= _BV(ADPS1);
-	/*
-	 * free running mode
-	 */
+  /*
+   * right adjusted
+   * adc1
+   * use avcc
+   */
+  //ADMUX = _BV(REFS0) | _BV(MUX0);
+  /*
+   * intrare diferentiala
+   * pe ADC1 -
+   * si ADC2 +
+   */
+  ADMUX = _BV(REFS0) | _BV(MUX0);
+  /*
+  ADMUX = _BV (REFS0) | _BV (MUX0) | _BV (MUX1) | _BV (MUX2) | _BV (ADLAR);
+  */
+ 
+  /*
+   * enable adc
+   * prescaler 32  => ~33KHz
+   * intreruperi
+   */
+  ADCSRA = _BV(ADPS1) | /* _BV(ADPS0) |*/ _BV(ADIE) | _BV(ADSC) | _BV(ADEN);  
+  //ADCSRA |= _BV(ADPS1);
+  /*
+   * free running mode
+   */
 }
 
 void
@@ -156,6 +201,23 @@ uint16_t count_diferit;
 uint16_t rem;
 
 #define TRESH 0
+SIGNAL(SIG_COMPARATOR)
+{
+	uint16_t com_time;
+	com_time = TCNT1;
+	TCNT1 = 0;
+	usart_buf_put_int16(com_time);
+	usart_buf_put_char('v');
+	if (usart_buf_get_pos() >= USART_BUF_SIZE - 20) {
+		STOP_MOTOR;
+		stop_adc();
+		stop_comp();
+		stop_timer_for_adc();
+		usart_buf_print();
+	}
+}
+
+#if 0
 SIGNAL(SIG_ADC)
 {
 	
@@ -371,6 +433,7 @@ SIGNAL(SIG_ADC)
 	}
 }
 
+#endif
 
 void
 delay(uint32_t us)
@@ -410,16 +473,20 @@ main(void)
 	max = 0x0000;
 	//rem = 200;
 	rem = 0;
-	//START_MOTOR_DIR_B;
+	START_MOTOR_DIR_B;
 	for (;;) {
 		if (STATE == S_INIT) {
 			loop_until_bit_is_clear(PINB, PB_READ_BUTTON);
 			//loop_until_bit_is_set(PINB, PB_READ_BUTTON);
-			init_adc();
+			//init_adc();
+			stop_adc();
+			init_comp();
+			start_comp();
 			
-			//init_timer_for_adc();
+			init_timer_for_adc();
+			//TIMER_ADC_RESET;
 			
-			START_MOTOR_DIR_B;
+			//START_MOTOR_DIR_B;
 			//START_MOTOR_DIR_A;
 			STATE = S_READING;
 
