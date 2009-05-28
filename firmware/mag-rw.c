@@ -66,7 +66,7 @@ init_adc(void)
 	 * prescaler 32	=> ~33KHz
 	 * intreruperi
 	 */
-	ADCSRA =  _BV(ADPS2) |/* _BV(ADPS0) |*/ _BV(ADIE) | _BV(ADSC) | _BV(ADEN);	
+	ADCSRA =   _BV(ADPS1) | /* _BV(ADPS0) |*/ _BV(ADIE) | _BV(ADSC) | _BV(ADEN);	
 	//ADCSRA |= _BV(ADPS1);
 	/*
 	 * free running mode
@@ -153,6 +153,7 @@ put_bit(uint8_t bit)
 }
 
 uint16_t count_diferit;
+uint16_t rem;
 
 #define TRESH 0
 SIGNAL(SIG_ADC)
@@ -182,22 +183,66 @@ SIGNAL(SIG_ADC)
 	}
 	#endif
 	#define L	0xff
+	#define LL	0x300	/* 0x3ff - 0xff */
+	lvl = last_lvl;
 	if (v < 0x200) {
 		if (v > L) {
 			lvl = 1;
-		} else if (zero_count < ZEROS) {
+		} /*else if (zero_count < ZEROS) {
 			lvl = last_lvl;
 		} else {
+			lvl = 1;
 			return;
+		}*/
+	} else {
+		if (v < (LL)) {
+			lvl = 0;
+		} /*else if (zero_count < ZEROS) {
+			lvl = last_lvl;
+		} else {
+			lvl = 0;
+			return;
+		}*/
+	}
+	if (lvl != last_lvl) {
+		if (rem == 0) {
+			usart_buf_put_int16(count_identic);
+			//usart_buf_put_int16(com_time);
+			usart_buf_put_char('#');
+		} else {
+			-- rem;
+		}
+		count_identic = 0;
+		last_lvl = lvl;
+	} else {
+		++ count_identic;
+	}
+	return;
+	if (lvl != last_lvl) {
+		if (zero_count >= ZEROS1) {
+			if (rem == 0) {
+				//usart_buf_put_int16(count_identic);
+				usart_buf_put_int16(com_time);
+				usart_buf_put_char('#');
+			} else {
+				-- rem;
+			}
+			if (usart_buf_get_pos() >= USART_BUF_SIZE - 20) {
+				STOP_MOTOR;
+				stop_adc();
+				stop_adc();
+				stop_timer_for_adc();
+				usart_buf_print();
+			}
+			last_lvl = lvl;
+			TCNT1 = 0;
+			return;
+		} else {
+			++ zero_count;
 		}
 	} else {
-		if (v < (0x3ff - L)) {
-			lvl = 0;
-		} else if (zero_count < ZEROS) {
-			lvl = last_lvl;
-		} else {
-			return;
-		}
+		TCNT1 = 0;
+		return;
 	}
 	#if 0
 	usart_buf_put_int16(v);
@@ -220,7 +265,7 @@ SIGNAL(SIG_ADC)
 		++ count_diferit;
 		count_diferit = 30;
 		//if (com_time > 30 || zero_count <= ZEROS) {
-		if (count_diferit >= TRESH){ //&& (TCNT1 > 100)) {
+		if (count_diferit >= TRESH) {
 			count_diferit = 0;
 			last_lvl = lvl;
 
@@ -249,18 +294,22 @@ SIGNAL(SIG_ADC)
 						//*/
 						TCNT1 = 0;
 					} else {
-						///*
-						//usart_buf_put_int16(count_identic);
-						usart_buf_put_int16(com_time);
-						usart_buf_put_char('#');
+						/*
+						if (rem == 0) {
+							usart_buf_put_int16(count_identic);
+							//usart_buf_put_int16(com_time);
+							usart_buf_put_char('#');
+						} else {
+							-- rem;
+						}
 						if (usart_buf_get_pos() >= USART_BUF_SIZE - 20) {
+							STOP_MOTOR;
 							stop_adc();
 							stop_adc();
 							stop_timer_for_adc();
 							usart_buf_print();
-							STOP_MOTOR;
 						}
-						//*/
+						*/
 						TCNT1 = 0;
 						if (com_time <= ((zero_time[!lvl]>>1) + ((zero_time[!lvl]>>9)))) {
 							t = 2;
@@ -272,6 +321,7 @@ SIGNAL(SIG_ADC)
 						if (skip) {
 							skip = 0;
 							r = 1;
+							count_identic = 0;
 							TCNT1 = 0;
 							return;
 						}
@@ -302,11 +352,13 @@ SIGNAL(SIG_ADC)
 							STOP_MOTOR;
 							STATE = S_READ;
 							TCNT1 = 0;
+							count_identic = 0;
 							return;
 						}
-						#endif
 						put_bit(bit);
+						#endif
 					}
+					count_identic = 0;
 					TCNT1 = 0;
 					return;
 				}
@@ -356,6 +408,8 @@ main(void)
 	buf[0] = 0;
 	min = 0xffff;
 	max = 0x0000;
+	//rem = 200;
+	rem = 0;
 	//START_MOTOR_DIR_B;
 	for (;;) {
 		if (STATE == S_INIT) {
