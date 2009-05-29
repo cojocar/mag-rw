@@ -19,8 +19,8 @@
 
 //#define PWM_SPEED	0x30
 //#define PWM_SPEED	0x2d	/* cu asta meargea */
-//#define PWM_SPEED	0x24
-#define PWM_SPEED	0x20
+#define PWM_SPEED	0x24
+//#define PWM_SPEED	0x20
 //#define PWM_SPEED	0x1C
 //#define PWM_SPEED	0x14
 //#define PWM_SPEED	0x12
@@ -28,7 +28,7 @@
 #define F_OSC 16000000           /* oscillator-frequency in Hz */
 #define UART_BAUD_RATE 9600
 #define ZEROS	4
-#define ZEROS1	(ZEROS+20)
+#define ZEROS1	(ZEROS+10)
 
 #define PB_READ_BUTTON	PB0
 #define PB_DIR_A		PB1

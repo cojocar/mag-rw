@@ -117,7 +117,7 @@ init_adc(void)
    * prescaler 32  => ~33KHz
    * intreruperi
    */
-  ADCSRA = _BV(ADPS0) | /* _BV(ADPS0) |*/ _BV(ADIE) | _BV(ADEN) | _BV(ADSC);
+  ADCSRA = _BV(ADPS0) | _BV(ADPS0) | _BV(ADIE) | _BV(ADEN) | _BV(ADSC);
   //ADCSRA |= _BV(ADPS1);
   /*
    * free running mode
@@ -166,6 +166,7 @@ output(void)
 	usart_put_int16(max);
 	usart_put_char('\n');
 	*/
+	usart_buf_print();
 	count = 0;
 	bit_count = 0;
 }
@@ -194,7 +195,6 @@ uint16_t count_diferit;
 ISR(SIG_OVERFLOW1)
 {
 	if (zero_count > ZEROS1) {
-		ADCSRA |= _BV(ADSC);
 	} else {
 		STOP_MOTOR;
 		usart_put_string("OVERFLOW\n");
@@ -214,7 +214,11 @@ ISR(SIG_ADC)
 	if (v < 0x200) {
 		if (v > L) {
 			lvl = 1;
-		} /*else if (zero_count < ZEROS) {
+		} else if (zero_count > ZEROS1) {
+			lvl = 1;
+			usart_buf_put_char('X');
+		}
+		/*else if (zero_count < ZEROS) {
 			lvl = last_lvl;
 		} else {
 			lvl = 1;
@@ -223,7 +227,11 @@ ISR(SIG_ADC)
 	} else {
 		if (v < (LL)) {
 			lvl = 0;
-		} /*else if (zero_count < ZEROS) {
+		} else if (zero_count > ZEROS1) {
+			lvl = 0;
+			usart_buf_put_char('Y');
+		}
+		/*else if (zero_count < ZEROS) {
 			lvl = last_lvl;
 		} else {
 			lvl = 0;
@@ -244,24 +252,40 @@ ISR(SIG_ADC)
 				period = com_time;
 			} else {
 				period = (com_time>>1) + (period>>1);
+				//period = com_time;
 			}
+			/*
 			usart_buf_put_int16(period);
 			usart_buf_put_int16(v);
 			usart_buf_put_string("V\n");
+			*/
 			TCNT1 = 0;
 		}
 	} else if (zero_count == ZEROS1) {
 		if (lvl != last_lvl) {
-			TCNT1 = 0xffff - period + (period>>3);
+			SFIOR |= _BV(ADTS2) | _BV(ADTS1);
+			ADCSRA |= _BV(ADATE);
+			TCNT1 = 0xffff - period - (period>>3);
 			++ zero_count;
 		}
 	} else if (zero_count > ZEROS1) {
-		TCNT1 = 0xffff - period;
+		///*
+		usart_buf_put_int16(v);
+		usart_buf_put_string("V\n");
+		if (usart_buf_get_pos() >= USART_BUF_SIZE - 20) {
+			STOP_MOTOR;
+			stop_adc();
+			stop_comp();
+			stop_timer_for_adc();
+			usart_buf_print();
+		}
+		//*/
 		if (lvl != last_lvl) {
 			put_bit(0);
 		} else {
 			put_bit(1);
 		}
+		TCNT1 = 0xffff - period;
 	}
 	last_lvl = lvl;
 }
