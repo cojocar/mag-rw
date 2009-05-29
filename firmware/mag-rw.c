@@ -66,15 +66,21 @@ init_comp(void)
 	 */
 	SFIOR = _BV(ACME);
 	ADMUX = _BV(MUX1);
-	ACSR = 0;//_BV(ACIC);
+	ACSR = 0; //_BV(ACIC);
 }
 
 ISR(SIG_INPUT_CAPTURE1)
 {
 	volatile uint16_t c;
+	volatile uint8_t sreg;
+
+	sreg = SREG;
+	cli();
 	c = ICR1;
 	ICR1 = 0;
-	TIFR |= _BV(ICF1);
+	SREG = sreg;
+
+//	TIFR |= _BV(ICF1);
 	usart_buf_put_int16(c);
 	usart_buf_put_char('#');
 	if (usart_buf_get_pos() >= USART_BUF_SIZE - 20) {
@@ -110,7 +116,7 @@ init_adc(void)
    * prescaler 32  => ~33KHz
    * intreruperi
    */
-  ADCSRA = _BV(ADPS1) | /* _BV(ADPS0) |*/ _BV(ADIE) | _BV(ADSC) | _BV(ADEN);  
+  ADCSRA = _BV(ADPS1) | /* _BV(ADPS0) | _BV(ADIE) | */ _BV(ADSC) | _BV(ADEN);  
   //ADCSRA |= _BV(ADPS1);
   /*
    * free running mode
@@ -478,8 +484,8 @@ main(void)
 		if (STATE == S_INIT) {
 			loop_until_bit_is_clear(PINB, PB_READ_BUTTON);
 			//loop_until_bit_is_set(PINB, PB_READ_BUTTON);
-			init_adc();
-			//stop_adc();
+			//init_adc();
+			stop_adc();
 			init_comp();
 			start_comp();
 			

@@ -17,11 +17,13 @@
 #ifndef  CONFIG_INC
 #define  CONFIG_INC
 
-#define PWM_SPEED	0x2d	/* cu asta meargea */
+//#define PWM_SPEED	0x2d	/* cu asta meargea */
 //#define PWM_SPEED	0x24
 //#define PWM_SPEED	0x20
 //#define PWM_SPEED	0x1C
 //#define PWM_SPEED	0x14
+#define PWM_SPEED	0x12
+//#define PWM_SPEED	0x0d
 #define F_OSC 16000000           /* oscillator-frequency in Hz */
 #define UART_BAUD_RATE 9600
 #define ZEROS	3
