@@ -26,7 +26,7 @@ init_timer_for_adc(void)
 	/* dau enable intreruperi */
 	TIMSK |= _BV(TOIE1); //| _BV(TICIE1);
 	//TCCR1B |= _BV(CS11) | _BV(CS10); /*| _BV(ICNC1); */
-	TCCR1B |= _BV(CS12); /*| _BV(CS10);*/ /*| _BV(ICNC1); */
+	TCCR1B |= _BV(CS11) | _BV(CS10); /*| _BV(ICNC1); */
 	//| _BV(CS10);
 	//| _BV(CS11);
 	//TCCR1B = _BV(CS12);
